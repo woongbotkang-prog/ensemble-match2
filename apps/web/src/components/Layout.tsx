@@ -27,6 +27,7 @@ const Layout = () => {
             <Link to="/postings/new">공고 작성</Link>
             <Link to="/applications">내 지원</Link>
             <Link to="/bookmarks">북마크</Link>
+            <Link to="/profile">프로필</Link>
             <Link to="/notifications" className="relative">
               <Bell className="h-5 w-5" />
               {unreadCount > 0 && (
