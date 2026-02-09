@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { fetchPosting } from '../lib/postings';
 import { acceptApplication, applyToPosting, rejectApplication } from '../lib/functions';
 import { useAuth } from '../lib/auth';
