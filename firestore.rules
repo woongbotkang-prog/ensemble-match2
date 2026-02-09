@@ -3,6 +3,35 @@ service cloud.firestore {
   match /databases/{database}/documents {
     function isSignedIn() { return request.auth != null; }
     function isAdmin() { return request.auth.token.admin == true; }
+    function isPostingAuthor() { return isSignedIn() && resource.data.authorId == request.auth.uid; }
+    function postingRestrictedFields() {
+      return [
+        "applicantCount",
+        "acceptedCount",
+        "totalFilled",
+        "status"
+      ];
+    }
+    function postingAuthorUpdatableFields() {
+      return [
+        "title",
+        "description",
+        "location",
+        "genre",
+        "requiredInstruments",
+        "recruitingStartDate",
+        "recruitingEndDate",
+        "activityStartDate",
+        "activityEndDate",
+        "updatedAt"
+      ];
+    }
+    function hasPostingRestrictedChanges() {
+      return request.resource.data.diff(resource.data).changedKeys().hasAny(postingRestrictedFields())
+        || (("requiredInstruments" in request.resource.data)
+          && ("requiredInstruments" in resource.data)
+          && request.resource.data.requiredInstruments.diff(resource.data.requiredInstruments).changedKeys().hasAny(["filled"]));
+    }
 
     match /users/{userId} {
       allow read: if isSignedIn();
@@ -16,7 +45,11 @@ service cloud.firestore {
     match /postings/{postingId} {
       allow read: if true;
       allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
-      allow update, delete: if isSignedIn() && resource.data.authorId == request.auth.uid;
+      allow update: if isPostingAuthor()
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly(postingAuthorUpdatableFields())
+        && !hasPostingRestrictedChanges();
+      allow update: if isAdmin();
+      allow delete: if isPostingAuthor();
     }
 
     match /applications/{applicationId} {
@@ -37,7 +70,9 @@ service cloud.firestore {
     }
 
     match /chatRooms/{chatRoomId} {
-      allow read, write: if isSignedIn() && request.auth.uid in resource.data.participants;
+      allow read: if isSignedIn() && request.auth.uid in resource.data.participants;
+      allow create: if isSignedIn() && request.auth.uid in request.resource.data.participants;
+      allow update, delete: if isSignedIn() && request.auth.uid in resource.data.participants;
       match /messages/{messageId} {
         allow read, write: if isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chatRooms/$(chatRoomId)).data.participants;
       }
