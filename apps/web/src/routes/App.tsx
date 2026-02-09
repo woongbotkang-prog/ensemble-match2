@@ -9,6 +9,7 @@ import ApplicationsPage from '../pages/ApplicationsPage';
 import BookmarksPage from '../pages/BookmarksPage';
 import NotificationsPage from '../pages/NotificationsPage';
 import ChatRoomPage from '../pages/ChatRoomPage';
+import ProfilePage from '../pages/ProfilePage';
 
 const App = () => {
   return (
@@ -23,6 +24,7 @@ const App = () => {
         <Route path="bookmarks" element={<BookmarksPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="chat/:id" element={<ChatRoomPage />} />
+        <Route path="profile" element={<ProfilePage />} />
       </Route>
     </Routes>
   );

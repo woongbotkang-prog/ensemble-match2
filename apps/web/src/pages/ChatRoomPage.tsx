@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { addDoc, collection, onSnapshot, orderBy, query, serverTimestamp } from 'firebase/firestore';
+import { addDoc, collection, doc, increment, onSnapshot, orderBy, query, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../lib/auth';
 
@@ -21,10 +21,16 @@ const ChatRoomPage = () => {
 
   const onSend = async () => {
     if (!id || !user || !text.trim()) return;
+    const trimmedText = text.trim();
     await addDoc(collection(db, 'chatRooms', id, 'messages'), {
       senderId: user.uid,
-      text,
+      text: trimmedText,
       createdAt: serverTimestamp(),
+    });
+    await updateDoc(doc(db, 'chatRooms', id), {
+      lastMessage: trimmedText,
+      lastMessageAt: serverTimestamp(),
+      unreadCount: increment(1),
     });
     setText('');
   };
