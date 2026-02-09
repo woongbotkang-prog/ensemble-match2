@@ -32,13 +32,26 @@ service cloud.firestore {
           && ("requiredInstruments" in resource.data)
           && request.resource.data.requiredInstruments.diff(resource.data.requiredInstruments).changedKeys().hasAny(["filled"]));
     }
+    function userMetaRestrictedFields() {
+      return [
+        "isVerified",
+        "isBanned"
+      ];
+    }
+    function hasUserMetaRestrictedChanges() {
+      return ("meta" in request.resource.data)
+        && request.resource.data.meta.keys().hasAny(userMetaRestrictedFields())
+        && (!("meta" in resource.data)
+          || request.resource.data.meta.diff(resource.data.meta).changedKeys().hasAny(userMetaRestrictedFields()));
+    }
 
     match /users/{userId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && request.auth.uid == userId;
       allow update: if isSignedIn() && request.auth.uid == userId
         && !("isVerified" in request.resource.data)
-        && !("isBanned" in request.resource.data);
+        && !("isBanned" in request.resource.data)
+        && !hasUserMetaRestrictedChanges();
       allow update: if isAdmin();
     }
 
