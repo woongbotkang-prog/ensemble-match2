@@ -1,0 +1,52 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() { return request.auth != null; }
+    function isAdmin() { return request.auth.token.admin == true; }
+
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isSignedIn() && request.auth.uid == userId
+        && !("isVerified" in request.resource.data)
+        && !("isBanned" in request.resource.data);
+      allow update: if isAdmin();
+    }
+
+    match /postings/{postingId} {
+      allow read: if true;
+      allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.authorId == request.auth.uid;
+    }
+
+    match /applications/{applicationId} {
+      allow read: if isSignedIn() && (resource.data.applicantId == request.auth.uid || resource.data.postingAuthorId == request.auth.uid);
+      allow create, update, delete: if false;
+    }
+
+    match /users/{userId}/bookmarks/{postingId} {
+      allow read, create, delete: if isSignedIn() && request.auth.uid == userId;
+      allow update: if false;
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid
+        && request.resource.data.keys().hasOnly(["isRead", "readAt", "userId", "type", "title", "message", "relatedPostingId", "relatedApplicationId", "relatedUserId", "createdAt"]);
+      allow create, delete: if false;
+    }
+
+    match /chatRooms/{chatRoomId} {
+      allow read, write: if isSignedIn() && request.auth.uid in resource.data.participants;
+      match /messages/{messageId} {
+        allow read, write: if isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chatRooms/$(chatRoomId)).data.participants;
+      }
+    }
+
+    match /reports/{reportId} {
+      allow create: if isSignedIn() && request.resource.data.reporterId == request.auth.uid;
+      allow read: if isAdmin();
+      allow update, delete: if isAdmin();
+    }
+  }
+}

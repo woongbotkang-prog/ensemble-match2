@@ -1,0 +1,47 @@
+export const skillLevels = [
+  { value: 'beginner', label: '초급' },
+  { value: 'intermediate', label: '중급' },
+  { value: 'advanced', label: '고급' },
+];
+
+export const instruments = [
+  { value: 'violin', label: '바이올린' },
+  { value: 'viola', label: '비올라' },
+  { value: 'cello', label: '첼로' },
+  { value: 'double_bass', label: '콘트라베이스' },
+  { value: 'flute', label: '플루트' },
+  { value: 'oboe', label: '오보에' },
+  { value: 'clarinet', label: '클라리넷' },
+  { value: 'bassoon', label: '바순' },
+  { value: 'horn', label: '호른' },
+  { value: 'trumpet', label: '트럼펫' },
+  { value: 'trombone', label: '트롬본' },
+  { value: 'tuba', label: '튜바' },
+  { value: 'timpani', label: '팀파니' },
+  { value: 'percussion', label: '타악기' },
+  { value: 'piano', label: '피아노' },
+  { value: 'harp', label: '하프' },
+  { value: 'voice', label: '보컬' },
+  { value: 'other', label: '기타' },
+];
+
+export const regions = [
+  { value: 'seoul', label: '서울' },
+  { value: 'gyeonggi', label: '경기' },
+  { value: 'incheon', label: '인천' },
+  { value: 'gangwon', label: '강원' },
+  { value: 'daejeon', label: '대전' },
+  { value: 'sejong', label: '세종' },
+  { value: 'chungnam', label: '충남' },
+  { value: 'chungbuk', label: '충북' },
+  { value: 'daegu', label: '대구' },
+  { value: 'gyeongbuk', label: '경북' },
+  { value: 'busan', label: '부산' },
+  { value: 'ulsan', label: '울산' },
+  { value: 'gyeongnam', label: '경남' },
+  { value: 'gwangju', label: '광주' },
+  { value: 'jeonnam', label: '전남' },
+  { value: 'jeonbuk', label: '전북' },
+  { value: 'jeju', label: '제주' },
+  { value: 'other', label: '기타' },
+];
