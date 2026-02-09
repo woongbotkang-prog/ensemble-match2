@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { fetchPosting } from '../lib/postings';
-import { applyToPosting } from '../lib/functions';
+import { acceptApplication, applyToPosting, rejectApplication } from '../lib/functions';
 import { useAuth } from '../lib/auth';
+import { collection, doc, onSnapshot, orderBy, query, where } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 
 const mapFunctionsErrorMessage = (error: unknown) => {
   if (!error || typeof error !== 'object' || !('code' in error)) {
@@ -70,6 +72,59 @@ const PostingDetailPage = () => {
     loadPosting();
   }, [id]);
 
+  const isAuthor = user && posting?.authorId === user.uid;
+
+  useEffect(() => {
+    if (!id || !isAuthor) {
+      setApplications([]);
+      return;
+    }
+    const q = query(
+      collection(db, 'applications'),
+      where('postingId', '==', id),
+      orderBy('appliedAt', 'desc')
+    );
+    const unsub = onSnapshot(q, (snap) => {
+      setApplications(snap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })));
+    });
+    return () => unsub();
+  }, [id, isAuthor]);
+
+  const applicantIds = useMemo(
+    () => Array.from(new Set(applications.map((item) => item.applicantId).filter(Boolean))),
+    [applications]
+  );
+
+  useEffect(() => {
+    if (!applicantIds.length) {
+      setApplicantProfiles({});
+      return;
+    }
+
+    setApplicantProfiles((prev) => {
+      const next: Record<string, any> = {};
+      applicantIds.forEach((applicantId) => {
+        if (prev[applicantId]) {
+          next[applicantId] = prev[applicantId];
+        }
+      });
+      return next;
+    });
+
+    const unsubs = applicantIds.map((applicantId) =>
+      onSnapshot(doc(db, 'users', applicantId), (snap) => {
+        setApplicantProfiles((prev) => ({
+          ...prev,
+          [applicantId]: snap.exists() ? { id: snap.id, ...snap.data() } : null,
+        }));
+      })
+    );
+
+    return () => {
+      unsubs.forEach((unsub) => unsub());
+    };
+  }, [applicantIds]);
+
   const onApply = async () => {
     if (!id || !instrument) return;
     setApplyLoading(true);
@@ -122,6 +177,66 @@ const PostingDetailPage = () => {
             {applyLoading ? '지원 처리 중...' : user ? '지원하기' : '로그인이 필요합니다'}
           </button>
         </div>
+        {isAuthor && (
+          <div className="rounded border p-3 space-y-3">
+            <div>
+              <p className="text-sm font-medium">지원자 리스트</p>
+              <p className="text-xs text-slate-500">지원 상태는 실시간으로 업데이트됩니다.</p>
+            </div>
+            {applications.length === 0 && (
+              <p className="text-sm text-slate-500">아직 지원자가 없습니다.</p>
+            )}
+            <div className="space-y-3">
+              {applications.map((application) => {
+                const profile = applicantProfiles[application.applicantId];
+                const isPending = application.status === 'pending';
+                return (
+                  <div key={application.id} className="rounded border p-3 space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-medium">{profile?.displayName ?? '이름 없음'}</p>
+                        <p className="text-xs text-slate-500">{profile?.email ?? '이메일 없음'}</p>
+                      </div>
+                      <span className="text-xs rounded-full border px-2 py-1">
+                        {application.status ?? 'pending'}
+                      </span>
+                    </div>
+                    <div className="text-sm text-slate-600">
+                      <p>지원 악기: {application.appliedInstrument}</p>
+                      {profile?.instrument?.length > 0 && <p>보유 악기: {profile.instrument.join(', ')}</p>}
+                      {profile?.skillLevel && <p>레벨: {profile.skillLevel}</p>}
+                      {profile?.region && <p>지역: {profile.region}</p>}
+                    </div>
+                    {application.message && (
+                      <p className="text-sm text-slate-700">지원 메시지: {application.message}</p>
+                    )}
+                    {profile?.bio && (
+                      <p className="text-xs text-slate-500">소개: {profile.bio}</p>
+                    )}
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => onAccept(application.id)}
+                        disabled={!isPending || actionLoading === application.id}
+                        className="rounded border px-3 py-1 text-xs"
+                      >
+                        수락
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onReject(application.id)}
+                        disabled={!isPending || actionLoading === application.id}
+                        className="rounded border px-3 py-1 text-xs"
+                      >
+                        거절
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );
