@@ -113,6 +113,8 @@ firebase functions:config:set algolia.app_id=YOUR_APP_ID algolia.admin_key=YOUR_
 ### 3) Firestore Rules/Indexes 배포
 ```bash
 firebase deploy --only firestore
+# 인덱스만 반영할 때
+firebase deploy --only firestore:indexes
 ```
 
 ### 4) Functions 배포
@@ -132,6 +134,8 @@ npm run deploy
 ### Firestore rules/indexes
 ```bash
 firebase deploy --only firestore
+# 인덱스만 반영할 때
+firebase deploy --only firestore:indexes
 ```
 
 ### Functions
