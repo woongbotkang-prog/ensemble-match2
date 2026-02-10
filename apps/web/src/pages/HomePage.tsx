@@ -3,10 +3,12 @@ import BookmarkButton from '../components/BookmarkButton';
 import algoliasearch from 'algoliasearch/lite';
 import { InstantSearch, SearchBox, Hits, RefinementList } from 'react-instantsearch';
 
-const searchClient = algoliasearch(
-  import.meta.env.VITE_ALGOLIA_APP_ID || 'demo',
-  import.meta.env.VITE_ALGOLIA_SEARCH_KEY || 'demo'
+const hasAlgoliaCredentials = Boolean(
+  import.meta.env.VITE_ALGOLIA_APP_ID && import.meta.env.VITE_ALGOLIA_SEARCH_KEY
 );
+const searchClient = hasAlgoliaCredentials
+  ? algoliasearch(import.meta.env.VITE_ALGOLIA_APP_ID, import.meta.env.VITE_ALGOLIA_SEARCH_KEY)
+  : null;
 
 const resolveDate = (value: any) => {
   if (!value) return null;
@@ -75,24 +77,32 @@ const HomePage = () => {
   return (
     <section className="space-y-4">
       <h1 className="text-2xl font-semibold">공고 검색</h1>
-      <InstantSearch searchClient={searchClient} indexName="postings">
-        <div className="grid gap-4 md:grid-cols-[240px_1fr]">
-          <aside className="space-y-4 rounded-lg border bg-white p-4">
-            <SearchBox placeholder="검색어 입력" classNames={{ input: 'w-full rounded border px-3 py-2' }} />
-            <div>
-              <p className="mb-2 text-sm font-medium">지역</p>
-              <RefinementList attribute="region" />
+      {searchClient ? (
+        <InstantSearch searchClient={searchClient} indexName="postings">
+          <div className="grid gap-4 md:grid-cols-[240px_1fr]">
+            <aside className="space-y-4 rounded-lg border bg-white p-4">
+              <SearchBox placeholder="검색어 입력" classNames={{ input: 'w-full rounded border px-3 py-2' }} />
+              <div>
+                <p className="mb-2 text-sm font-medium">지역</p>
+                <RefinementList attribute="region" />
+              </div>
+              <div>
+                <p className="mb-2 text-sm font-medium">카테고리</p>
+                <RefinementList attribute="categoryMain" />
+              </div>
+            </aside>
+            <div className="grid gap-4">
+              <Hits hitComponent={HitCard} />
             </div>
-            <div>
-              <p className="mb-2 text-sm font-medium">카테고리</p>
-              <RefinementList attribute="categoryMain" />
-            </div>
-          </aside>
-          <div className="grid gap-4">
-            <Hits hitComponent={HitCard} />
           </div>
+        </InstantSearch>
+      ) : (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          Algolia 환경 변수가 설정되지 않아 검색이 비활성화되었습니다.{' '}
+          <span className="font-semibold">VITE_ALGOLIA_APP_ID</span>와{' '}
+          <span className="font-semibold">VITE_ALGOLIA_SEARCH_KEY</span>를 설정한 뒤 다시 실행하세요.
         </div>
-      </InstantSearch>
+      )}
     </section>
   );
 };

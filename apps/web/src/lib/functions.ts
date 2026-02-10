@@ -1,7 +1,13 @@
-import { getFunctions, httpsCallable } from 'firebase/functions';
+import { connectFunctionsEmulator, getFunctions, httpsCallable } from 'firebase/functions';
 import { auth } from './firebase';
 
 const functions = getFunctions();
+const useEmulator = import.meta.env.VITE_USE_EMULATOR === 'true';
+if (useEmulator) {
+  const host = import.meta.env.VITE_FIREBASE_EMULATOR_HOST || 'localhost';
+  const port = Number(import.meta.env.VITE_FIREBASE_FUNCTIONS_EMULATOR_PORT || 5001);
+  connectFunctionsEmulator(functions, host, port);
+}
 
 export const applyToPosting = async (payload: { postingId: string; appliedInstrument: string; message?: string }) => {
   const callable = httpsCallable(functions, 'applyToPosting');
