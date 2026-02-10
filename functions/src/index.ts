@@ -208,16 +208,19 @@ export const acceptApplication = functions.https.onCall(async (data, context) =>
     const chatRoomRef = db.collection('chatRooms').doc(applicationId);
     const chatSnap = await tx.get(chatRoomRef);
     if (!chatSnap.exists) {
+      const participants = [posting.authorId, application.applicantId];
+      const unreadCount = participants.reduce<Record<string, number>>((acc, participantUid) => {
+        acc[participantUid] = 0;
+        return acc;
+      }, {});
+
       tx.set(chatRoomRef, {
         applicationId,
         postingId: application.postingId,
-        participants: [posting.authorId, application.applicantId],
+        participants,
         lastMessage: '',
         lastMessageAt: null,
-        unreadCount: {
-          [posting.authorId]: 0,
-          [application.applicantId]: 0,
-        },
+        unreadCount,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         isActive: true,
       });

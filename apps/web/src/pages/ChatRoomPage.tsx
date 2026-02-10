@@ -8,7 +8,19 @@ const ChatRoomPage = () => {
   const { id } = useParams();
   const { user } = useAuth();
   const [messages, setMessages] = useState<any[]>([]);
+  const [participants, setParticipants] = useState<string[]>([]);
   const [text, setText] = useState('');
+
+  useEffect(() => {
+    if (!id) return;
+    const chatRoomRef = doc(db, 'chatRooms', id);
+    const unsub = onSnapshot(chatRoomRef, (snap) => {
+      const data = snap.data();
+      setParticipants(Array.isArray(data?.participants) ? data.participants : []);
+    });
+
+    return () => unsub();
+  }, [id]);
 
   useEffect(() => {
     if (!id) return;
@@ -22,16 +34,23 @@ const ChatRoomPage = () => {
   const onSend = async () => {
     if (!id || !user || !text.trim()) return;
     const trimmedText = text.trim();
+    const receiverUid = participants.find((uid) => uid !== user.uid);
+
+    if (!receiverUid) return;
+
     await addDoc(collection(db, 'chatRooms', id, 'messages'), {
       senderId: user.uid,
       text: trimmedText,
       createdAt: serverTimestamp(),
     });
+
     await updateDoc(doc(db, 'chatRooms', id), {
       lastMessage: trimmedText,
       lastMessageAt: serverTimestamp(),
-      unreadCount: increment(1),
+      [`unreadCount.${receiverUid}`]: increment(1),
+      [`unreadCount.${user.uid}`]: 0,
     });
+
     setText('');
   };
 
