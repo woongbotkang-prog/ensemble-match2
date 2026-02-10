@@ -326,11 +326,14 @@ export const syncPostingsToAlgolia = functions.firestore
       teamName: data.teamName,
       repertoire: data.repertoire,
       region: data.region,
+      expiresAt: data.expiresAt?.toMillis?.() ?? null,
       requiredInstruments: (data.requiredInstruments || []).map((item: any) => item.instrument),
       status: data.status,
       createdAt: data.createdAt?.toMillis?.() ?? null,
       bookmarkCount: data.bookmarkCount ?? 0,
       categoryMain: data.categoryMain,
       requiredSkillLevel: data.requiredSkillLevel || [],
+      totalNeeded: data.totalNeeded ?? 0,
+      totalFilled: data.totalFilled ?? 0,
     });
   });
