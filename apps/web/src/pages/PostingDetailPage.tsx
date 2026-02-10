@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import { fetchPosting } from '../lib/postings';
 import { acceptApplication, applyToPosting, rejectApplication } from '../lib/functions';
 import { useAuth } from '../lib/auth';
-import { collection, doc, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
 const mapFunctionsErrorMessage = (error: unknown) => {
@@ -86,6 +85,10 @@ const PostingDetailPage = () => {
   const [applyLoading, setApplyLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [applyError, setApplyError] = useState('');
+  const [applications, setApplications] = useState<any[]>([]);
+  const [applicantProfiles, setApplicantProfiles] = useState<Record<string, any>>({});
+  const [actionLoading, setActionLoading] = useState('');
+  const [actionError, setActionError] = useState('');
 
   useEffect(() => {
     if (!id) return;
@@ -93,7 +96,7 @@ const PostingDetailPage = () => {
       setIsLoading(true);
       setErrorMessage('');
       try {
-        const data = await fetchPosting(id);
+        const data = (await fetchPosting(id)) as any;
         setPosting(data);
         if (data?.requiredInstruments?.length) {
           setInstrument(data.requiredInstruments[0].instrument);
@@ -109,6 +112,18 @@ const PostingDetailPage = () => {
   }, [id]);
 
   const isAuthor = user && posting?.authorId === user.uid;
+  const statusBadge = getStatusBadge(posting?.status);
+  const deadlineLabel = getDeadlineLabel(posting?.expiresAt);
+  const totalFilled = posting?.requiredInstruments?.reduce(
+    (sum: number, item: { filled?: number; filledCount?: number }) =>
+      sum + (item?.filled ?? item?.filledCount ?? 0),
+    0
+  ) ?? 0;
+  const totalNeeded = posting?.requiredInstruments?.reduce(
+    (sum: number, item: { count?: number; neededCount?: number }) =>
+      sum + (item?.count ?? item?.neededCount ?? 0),
+    0
+  ) ?? 0;
 
   useEffect(() => {
     if (!id || !isAuthor) {
@@ -175,6 +190,30 @@ const PostingDetailPage = () => {
     }
   };
 
+  const onAccept = async (applicationId: string) => {
+    setActionLoading(applicationId);
+    setActionError('');
+    try {
+      await acceptApplication({ applicationId });
+    } catch (error) {
+      setActionError(mapFunctionsErrorMessage(error));
+    } finally {
+      setActionLoading('');
+    }
+  };
+
+  const onReject = async (applicationId: string) => {
+    setActionLoading(applicationId);
+    setActionError('');
+    try {
+      await rejectApplication({ applicationId });
+    } catch (error) {
+      setActionError(mapFunctionsErrorMessage(error));
+    } finally {
+      setActionLoading('');
+    }
+  };
+
   if (isLoading) {
     return <div className="rounded-lg border bg-white p-6">로딩 중...</div>;
   }
@@ -233,6 +272,7 @@ const PostingDetailPage = () => {
               <p className="text-sm text-slate-500">아직 지원자가 없습니다.</p>
             )}
             <div className="space-y-3">
+              {actionError && <p className="text-sm text-rose-600">{actionError}</p>}
               {applications.map((application) => {
                 const profile = applicantProfiles[application.applicantId];
                 const isPending = application.status === 'pending';
