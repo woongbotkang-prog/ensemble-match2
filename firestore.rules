@@ -15,22 +15,43 @@ service cloud.firestore {
     function postingAuthorUpdatableFields() {
       return [
         "title",
-        "description",
-        "location",
-        "genre",
+        "teamName",
+        "categoryMain",
+        "categorySub",
         "requiredInstruments",
-        "recruitingStartDate",
-        "recruitingEndDate",
-        "activityStartDate",
-        "activityEndDate",
+        "repertoire",
+        "region",
+        "rehearsalFrequency",
+        "requiredSkillLevel",
+        "description",
+        "expiresAt",
+        "autoCloseWhenFilled",
+        "allowReapplyAfterRejection",
         "updatedAt"
       ];
     }
+    function requiredInstrumentFilledValue(item) {
+      return ("filled" in item) ? item.filled : 0;
+    }
+    function hasRequiredInstrumentsFilledChangesAt(index) {
+      return index < request.resource.data.requiredInstruments.size()
+        && (
+          (index < resource.data.requiredInstruments.size()
+            && requiredInstrumentFilledValue(request.resource.data.requiredInstruments[index])
+              != requiredInstrumentFilledValue(resource.data.requiredInstruments[index]))
+          || (index >= resource.data.requiredInstruments.size()
+            && requiredInstrumentFilledValue(request.resource.data.requiredInstruments[index]) != 0)
+          || hasRequiredInstrumentsFilledChangesAt(index + 1)
+        );
+    }
+    function hasRequiredInstrumentsFilledChanges() {
+      return ("requiredInstruments" in request.resource.data)
+        && ("requiredInstruments" in resource.data)
+        && hasRequiredInstrumentsFilledChangesAt(0);
+    }
     function hasPostingRestrictedChanges() {
       return request.resource.data.diff(resource.data).changedKeys().hasAny(postingRestrictedFields())
-        || (("requiredInstruments" in request.resource.data)
-          && ("requiredInstruments" in resource.data)
-          && request.resource.data.requiredInstruments.diff(resource.data.requiredInstruments).changedKeys().hasAny(["filled"]));
+        || hasRequiredInstrumentsFilledChanges();
     }
     function userMetaRestrictedFields() {
       return [
